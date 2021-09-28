@@ -1,2 +1,2 @@
 # mpx-jest
-Jest Mpx transformer
+Jest transformer for Mpx Single File Components.
