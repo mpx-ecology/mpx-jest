@@ -191,7 +191,6 @@ class RequireFromString{
     Object.defineProperty(module, 'require', {
       value: this._require
     });
-
     const transformedCode = code
     let compiledFunction = null;
     const script = this.createScriptFromCode(transformedCode, filename);
@@ -510,6 +509,247 @@ class RequireFromString{
     return jestObject;
   }
 
+  requireActual(from, moduleName) {
+    return this.requireModule(from, moduleName, undefined, true);
+  }
+
+  requireModule(from, moduleName, options, isRequireActual) {
+    const moduleID = this._resolver.getModuleID(
+      fromEntries(this._virtualMocks),
+      from,
+      moduleName
+    );
+
+    let modulePath; // Some old tests rely on this mocking behavior. Ideally we'll change this
+    // to be more explicit.
+
+    const moduleResource = moduleName && this._resolver.getModule(moduleName);
+
+    const manualMock =
+      moduleName && this._resolver.getMockModule(from, moduleName);
+
+    if (
+      !(options === null || options === void 0
+        ? void 0
+        : options.isInternalModule) &&
+      !isRequireActual &&
+      !moduleResource &&
+      manualMock &&
+      manualMock !== this._isCurrentlyExecutingManualMock &&
+      this._explicitShouldMock.get(moduleID) !== false
+    ) {
+      modulePath = manualMock;
+    }
+
+    if (moduleName && this._resolver.isCoreModule(moduleName)) {
+      return this._requireCoreModule(moduleName);
+    }
+
+    if (!modulePath) {
+      modulePath = this._resolveModule(from, moduleName);
+    }
+
+    let moduleRegistry;
+
+    if (
+      options === null || options === void 0 ? void 0 : options.isInternalModule
+    ) {
+      moduleRegistry = this._internalModuleRegistry;
+    } else {
+      if (
+        this._moduleRegistry.get(modulePath) ||
+        !this._isolatedModuleRegistry
+      ) {
+        moduleRegistry = this._moduleRegistry;
+      } else {
+        moduleRegistry = this._isolatedModuleRegistry;
+      }
+    }
+
+    const module = moduleRegistry.get(modulePath);
+
+    if (module) {
+      return module.exports;
+    } // We must register the pre-allocated module object first so that any
+    // circular dependencies that may arise while evaluating the module can
+    // be satisfied.
+
+    const localModule = {
+      children: [],
+      exports: {},
+      filename: modulePath,
+      id: modulePath,
+      loaded: false,
+      path: path().dirname(modulePath)
+    };
+    moduleRegistry.set(modulePath, localModule);
+
+    this._loadModule(
+      localModule,
+      from,
+      moduleName,
+      modulePath,
+      options,
+      moduleRegistry
+    );
+
+    return localModule.exports;
+  }
+
+  requireMock(from, moduleName) {
+    const moduleID = this._resolver.getModuleID(
+      fromEntries(this._virtualMocks),
+      from,
+      moduleName
+    );
+
+    if (
+      this._isolatedMockRegistry &&
+      this._isolatedMockRegistry.get(moduleID)
+    ) {
+      return this._isolatedMockRegistry.get(moduleID);
+    } else if (this._mockRegistry.get(moduleID)) {
+      return this._mockRegistry.get(moduleID);
+    }
+
+    const mockRegistry = this._isolatedMockRegistry || this._mockRegistry;
+
+    if (this._mockFactories.has(moduleID)) {
+      // has check above makes this ok
+      const module = this._mockFactories.get(moduleID)();
+
+      mockRegistry.set(moduleID, module);
+      return module;
+    }
+
+    const manualMockOrStub = this._resolver.getMockModule(from, moduleName);
+
+    let modulePath =
+      this._resolver.getMockModule(from, moduleName) ||
+      this._resolveModule(from, moduleName);
+
+    let isManualMock =
+      manualMockOrStub &&
+      !this._resolver.resolveStubModuleName(from, moduleName);
+
+    if (!isManualMock) {
+      // If the actual module file has a __mocks__ dir sitting immediately next
+      // to it, look to see if there is a manual mock for this file.
+      //
+      // subDir1/my_module.js
+      // subDir1/__mocks__/my_module.js
+      // subDir2/my_module.js
+      // subDir2/__mocks__/my_module.js
+      //
+      // Where some other module does a relative require into each of the
+      // respective subDir{1,2} directories and expects a manual mock
+      // corresponding to that particular my_module.js file.
+      const moduleDir = path().dirname(modulePath);
+      const moduleFileName = path().basename(modulePath);
+      const potentialManualMock = path().join(
+        moduleDir,
+        '__mocks__',
+        moduleFileName
+      );
+
+      if (fs().existsSync(potentialManualMock)) {
+        isManualMock = true;
+        modulePath = potentialManualMock;
+      }
+    }
+
+    if (isManualMock) {
+      const localModule = {
+        children: [],
+        exports: {},
+        filename: modulePath,
+        id: modulePath,
+        loaded: false,
+        path: path().dirname(modulePath)
+      };
+
+      this._loadModule(
+        localModule,
+        from,
+        moduleName,
+        modulePath,
+        undefined,
+        mockRegistry
+      );
+
+      mockRegistry.set(moduleID, localModule.exports);
+    } else {
+      // Look for a real module to generate an automock from
+      mockRegistry.set(moduleID, this._generateMock(from, moduleName));
+    }
+
+    return mockRegistry.get(moduleID);
+  }
+
+  _createRequireImplementation(from, options) {
+    const resolve = (moduleName, resolveOptions) => {
+      const resolved = this._requireResolve(
+        from.filename,
+        moduleName,
+        resolveOptions
+      );
+
+      if (
+        (resolveOptions === null || resolveOptions === void 0
+          ? void 0
+          : resolveOptions[OUTSIDE_JEST_VM_RESOLVE_OPTION]) &&
+        (options === null || options === void 0
+          ? void 0
+          : options.isInternalModule)
+      ) {
+        return (0, _helpers.createOutsideJestVmPath)(resolved);
+      }
+
+      return resolved;
+    };
+
+    resolve.paths = moduleName =>
+      this._requireResolvePaths(from.filename, moduleName);
+
+    const moduleRequire = (
+      options === null || options === void 0 ? void 0 : options.isInternalModule
+    )
+      ? moduleName => this.requireInternalModule(from.filename, moduleName)
+      : this.requireModuleOrMock.bind(this, from.filename)
+    moduleRequire.extensions = Object.create(null);
+    moduleRequire.resolve = resolve;
+
+    moduleRequire.cache = (() => {
+      // TODO: consider warning somehow that this does nothing. We should support deletions, anyways
+      const notPermittedMethod = () => true;
+
+      return new Proxy(Object.create(null), {
+        defineProperty: notPermittedMethod,
+        deleteProperty: notPermittedMethod,
+        get: (_target, key) =>
+          typeof key === 'string' ? this._moduleRegistry.get(key) : undefined,
+
+        getOwnPropertyDescriptor() {
+          return {
+            configurable: true,
+            enumerable: true
+          };
+        },
+
+        has: (_target, key) =>
+          typeof key === 'string' && this._moduleRegistry.has(key),
+        ownKeys: () => Array.from(this._moduleRegistry.keys()),
+        set: notPermittedMethod
+      });
+    })();
+
+    Object.defineProperty(moduleRequire, 'main', {
+      enumerable: true,
+      value: this._mainModule
+    });
+    return moduleRequire;
+  }
+
   createScriptFromCode(scriptSource, filename) {
     try {
       const scriptFilename = this._resolver.isCoreModule(filename)
@@ -536,6 +776,131 @@ class RequireFromString{
       throw (0, _transform().handlePotentialSyntaxError)(e);
     }
   }
+
+  getGlobalsForCjs(from) {
+    const jest = this.jestObjectCaches.get(from);
+    invariant(jest, 'There should always be a Jest object already');
+    return {...this.getGlobalsFromEnvironment(), jest};
+  }
+
+  _shouldMock(from, moduleName) {
+    // TODO 待修改
+    return false
+    const explicitShouldMock = this._explicitShouldMock;
+
+    const moduleID = this._resolver.getModuleID(
+      fromEntries(this._virtualMocks),
+      from,
+      moduleName
+    );
+
+    const key = from + path().delimiter + moduleID;
+
+    if (explicitShouldMock.has(moduleID)) {
+      // guaranteed by `has` above
+      return explicitShouldMock.get(moduleID);
+    }
+
+    if (
+      !this._shouldAutoMock ||
+      this._resolver.isCoreModule(moduleName) ||
+      this._shouldUnmockTransitiveDependenciesCache.get(key)
+    ) {
+      return false;
+    }
+
+    if (this._shouldMockModuleCache.has(moduleID)) {
+      // guaranteed by `has` above
+      return this._shouldMockModuleCache.get(moduleID);
+    }
+
+    let modulePath;
+
+    try {
+      modulePath = this._resolveModule(from, moduleName);
+    } catch (e) {
+      const manualMock = this._resolver.getMockModule(from, moduleName);
+
+      if (manualMock) {
+        this._shouldMockModuleCache.set(moduleID, true);
+
+        return true;
+      }
+
+      throw e;
+    }
+
+    if (this._unmockList && this._unmockList.test(modulePath)) {
+      this._shouldMockModuleCache.set(moduleID, false);
+
+      return false;
+    } // transitive unmocking for package managers that store flat packages (npm3)
+
+    const currentModuleID = this._resolver.getModuleID(
+      fromEntries(this._virtualMocks),
+      from
+    );
+
+    if (
+      this._transitiveShouldMock.get(currentModuleID) === false ||
+      (from.includes(NODE_MODULES) &&
+        modulePath.includes(NODE_MODULES) &&
+        ((this._unmockList && this._unmockList.test(from)) ||
+          explicitShouldMock.get(currentModuleID) === false))
+    ) {
+      this._transitiveShouldMock.set(moduleID, false);
+
+      this._shouldUnmockTransitiveDependenciesCache.set(key, true);
+
+      return false;
+    }
+
+    this._shouldMockModuleCache.set(moduleID, true);
+
+    return true;
+  }
+
+  requireModuleOrMock(from, moduleName) {
+    // this module is unmockable
+    if (moduleName === '@jest/globals') {
+      // @ts-expect-error: we don't care that it's not assignable to T
+      return this.getGlobalsForCjs(from);
+    }
+
+    try {
+      if (this._shouldMock(from, moduleName)) {
+        return this.requireMock(from, moduleName)
+      } else {
+        return this.requireModule(from, moduleName)
+      }
+    } catch (e) {
+      const moduleNotFound = _jestResolve().default.tryCastModuleNotFoundError(
+        e
+      );
+
+      if (moduleNotFound) {
+        if (
+          moduleNotFound.siblingWithSimilarExtensionFound === null ||
+          moduleNotFound.siblingWithSimilarExtensionFound === undefined
+        ) {
+          moduleNotFound.hint = (0, _helpers.findSiblingsWithFileExtension)(
+            this._config.moduleFileExtensions,
+            from,
+            moduleNotFound.moduleName || moduleName
+          );
+          moduleNotFound.siblingWithSimilarExtensionFound = Boolean(
+            moduleNotFound.hint
+          );
+        }
+
+        moduleNotFound.buildMessage(this._config.rootDir);
+        throw moduleNotFound;
+      }
+
+      throw e;
+    }
+  }
+
 
 }
 

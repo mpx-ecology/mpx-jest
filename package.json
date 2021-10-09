@@ -15,8 +15,8 @@
     "mpx",
     "unittest"
   ],
-  "author": "xuegan@didiglobal.com",
-  "license": "ISC",
+  "author": "xuegan",
+  "license": "Apache",
   "bugs": {
     "url": "https://github.com/mpx-ecology/mpx-jest/issues"
   },
