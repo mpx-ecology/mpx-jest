@@ -1,0 +1,24 @@
+{
+  "name": "@mpxjs/mpx-jest",
+  "version": "0.0.1",
+  "description": "mpx jest transformer",
+  "main": "packages/mpx2-jest/webpack-plugin/mpx-jest.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mpx-ecology/mpx-jest.git"
+  },
+  "keywords": [
+    "jest",
+    "mpx",
+    "unittest"
+  ],
+  "author": "xuegan@didiglobal.com",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/mpx-ecology/mpx-jest/issues"
+  },
+  "homepage": "https://github.com/mpx-ecology/mpx-jest#readme"
+}
