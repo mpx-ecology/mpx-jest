@@ -111,9 +111,9 @@ class RequireFromString{
     environment,
     coverageOptions
   ) {
-    _defineProperty(this, '_scriptTransformer', void 0);
+    // _defineProperty(this, '_scriptTransformer', void 0);
     this._resolver = resolver
-    this._scriptTransformer = new (_transform().ScriptTransformer)(config)
+    // this._scriptTransformer = new (_transform().ScriptTransformer)(config)
     this._config = config
     this._environment = environment
     this._moduleMocker = this._environment.moduleMocker;
@@ -264,32 +264,6 @@ class RequireFromString{
 
     this._isCurrentlyExecutingManualMock = origCurrExecutingManualMock;
     this._currentlyExecutingModulePath = lastExecutingModulePath;
-  }
-
-  transformFile(code, filename, options) {
-    const source = code;
-
-    // if (
-    //   options === null || options === void 0 ? void 0 : options.isInternalModule
-    // ) {
-    //   return source;
-    // }
-
-    const transformedFile = this._scriptTransformer.transform(
-      filename,
-      this._getFullTransformationOptions(options),
-      source
-    );
-
-    // this._fileTransforms.set(filename, {
-    //   ...transformedFile,
-    //   wrapperLength: this.constructModuleWrapperStart().length
-    // });
-    //
-    // if (transformedFile.sourceMapPath) {
-    //   this._sourceMapRegistry.set(filename, transformedFile.sourceMapPath);
-    // }
-    return transformedFile.code;
   }
 
   _getFullTransformationOptions(options = defaultTransformOptions) {
