@@ -1,4 +1,5 @@
 const JSON5 = require('json5')
+const path = require('path')
 const parseComponent = require('./parser')
 const createHelpers = require('./helpers')
 const loaderUtils = require('loader-utils')
@@ -6,10 +7,9 @@ const parseRequest = require('./utils/parse-request')
 const matchCondition = require('./utils/match-condition')
 const fixUsingComponent = require('./utils/fix-using-component')
 const addQuery = require('./utils/add-query')
-const async = require('async')
-const readJsonForSrc = require('./utils/read-json-for-src')
 const normalize = require('./utils/normalize')
 const templateCompiler = require('./template-compiler/index')
+const babel = require("@babel/core")
 
 const mkdirp = require('mkdirp')
 const fs = require('fs')
@@ -176,9 +176,7 @@ module.exports = function (src, filePath, jestConfig) {
 
   const {
     getRequire,
-    getRequireForSrc,
-    getRequestString,
-    getSrcRequestString
+    getRequireForSrc
   } = createHelpers({
     loaderContext,
     options,
@@ -243,24 +241,34 @@ module.exports = function (src, filePath, jestConfig) {
   // <script>
   output += '/* script */\n'
   let scriptSrcMode = srcMode
+  let scriptLang = 'js'
   const script = parts.script
   if (script) {
-    // script 直接注入，可不再走 selector.js
-    outputRes.script += script.content
-
-    // scriptSrcMode = script.mode || scriptSrcMode
-    // let scriptRequestString
-    // if (script.src) {
-    //   // 传入resourcePath以确保后续处理中能够识别src引入的资源为组件主资源
-    //   script.src = processSrcQuery(script.src, 'script')
-    //   scriptRequestString = getSrcRequestString('script', script)
-    // } else {
-    //   scriptRequestString = getRequestString('script', script)
-    // }
-    // if (scriptRequestString) {
-    //   output += 'export * from ' + scriptRequestString + '\n\n'
-    //   if (ctorType === 'app') mpx.appScriptRawRequest = JSON.parse(scriptRequestString)
-    // }
+    scriptSrcMode = script.mode || scriptSrcMode
+    const plugins = ["@babel/plugin-transform-modules-commonjs"]
+    if (script.src) {
+      // 传入resourcePath以确保后续处理中能够识别src引入的资源为组件主资源
+      const basePathDir = path.dirname(filePath) + '/'
+      const absolutePath = require.resolve(script.src, {paths: [basePathDir]})
+      if (script.lang === 'ts') {
+        plugins.push("@babel/plugin-transform-typescript")
+      }
+      const srcContent = babel.transformSync(
+        fs.readFileSync(absolutePath).toString('utf8'),
+        {
+          plugins: plugins
+        }
+      ).code
+      outputRes.script = srcContent
+    } else {
+      const srcCode = babel.transformSync(
+        script.content,
+        {
+          plugins: plugins
+        }
+      ).code
+      outputRes.script += srcCode
+    }
   } else {
     switch (ctorType) {
       case 'app':
@@ -392,6 +400,12 @@ module.exports = function (src, filePath, jestConfig) {
       code: res.code
     }
   }
+  // const res = require("@babel/core").transformSync(componentContent.script, {
+  //   plugins: [
+  //     "@babel/plugin-transform-modules-commonjs",
+  //     "@babel/plugin-transform-typescript"
+  //   ],
+  // });
   transformedFiles.set(filePath, true)
   return {
     code: 'module.exports = '+JSON.stringify(outputRes)
