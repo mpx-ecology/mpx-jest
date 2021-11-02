@@ -1,8 +1,4 @@
 
-function _interopRequireDefault(obj) {
-  return obj && obj.__esModule ? obj : {default: obj};
-}
-
 var _Object$fromEntries;
 
 function _getRequireWildcardCache() {
@@ -58,20 +54,6 @@ const fromEntries =
       }, {});
     };
 
-function _defineProperty(obj, key, value) {
-  if (key in obj) {
-    Object.defineProperty(obj, key, {
-      value: value,
-      enumerable: true,
-      configurable: true,
-      writable: true
-    });
-  } else {
-    obj[key] = value;
-  }
-  return obj;
-}
-
 function _transform() {
   const data = require('@jest/transform')
   _transform = function () {
@@ -100,9 +82,7 @@ function path() {
   return data;
 }
 
-const unmockRegExpCache = new WeakMap()
 const EVAL_RESULT_VARIABLE = 'Object.<anonymous>'
-const runtimeSupportsVmModules = typeof _vm().SyntheticModule === 'function'
 
 class RequireFromString{
   constructor(
@@ -111,7 +91,6 @@ class RequireFromString{
     environment,
     coverageOptions
   ) {
-    // _defineProperty(this, '_scriptTransformer', void 0);
     this._resolver = resolver
     // this._scriptTransformer = new (_transform().ScriptTransformer)(config)
     this._config = config
@@ -198,7 +177,9 @@ class RequireFromString{
 
     if (typeof this._environment.getVmContext === 'function') {
       const vmContext = this._environment.getVmContext();
-
+      vmContext.getApp = () => {
+        return {}
+      }
       if (vmContext) {
         runScript = script.runInContext(vmContext, {
           filename
@@ -244,11 +225,9 @@ class RequireFromString{
       enumerable: true,
       value: this._mainModule
     });
-
-
+    
     try {
-      compiledFunction.call(
-        this._environment.global,
+      compiledFunction(
         module, // module object
         module.exports, // module exports
         module.require, // require implementation
