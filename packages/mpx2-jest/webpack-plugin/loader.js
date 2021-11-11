@@ -160,13 +160,13 @@ module.exports = function (src, filePath, jestConfig) {
   if (script) {
     scriptSrcMode = script.mode || scriptSrcMode
     const plugins = ["@babel/plugin-transform-modules-commonjs"]
+    if (script.lang === 'ts') {
+      plugins.push("@babel/plugin-transform-typescript")
+    }
     if (script.src) {
       // 传入resourcePath以确保后续处理中能够识别src引入的资源为组件主资源
       const basePathDir = path.dirname(filePath) + '/'
       const absolutePath = require.resolve(script.src, {paths: [basePathDir]})
-      if (script.lang === 'ts') {
-        plugins.push("@babel/plugin-transform-typescript")
-      }
       const srcContent = babel.transformSync(
         fs.readFileSync(absolutePath).toString('utf8'),
         {
