@@ -6,6 +6,7 @@ const parseRequest = require('./utils/parse-request')
 const fixUsingComponent = require('./utils/fix-using-component')
 const normalize = require('./utils/normalize')
 const templateCompiler = require('./template-compiler/index')
+const jsonCompiler = require('./json-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
 const transformedFiles = new Map
@@ -13,6 +14,10 @@ const transformedFiles = new Map
 //src, filePath, jestConfig
 module.exports = function (src, filePath, jestConfig) {
   this.resource = filePath
+  this.resourcePath = filePath
+  // mock loader，后续可以改为implement继承一个class的方式
+  this.cacheable = () => {}
+  this.async = () => {}
   const resource = filePath
   let content = src
   const mainCompilation = {
@@ -23,10 +28,30 @@ module.exports = function (src, filePath, jestConfig) {
       pagesMap: {},
       usingComponents: {},
       mode: 'wx',
-      srcMode: 'wx'
-    }
+      srcMode: 'wx',
+      defs: {
+        ...(jestConfig.config && jestConfig.config.globals && jestConfig.config.globals)
+      },
+      getEntryNode: () => {}
+    },
+    outputOptions: {},
+    compiler: {},
+    _preparedEntrypoints: [
+      {
+        name: ''
+      }
+    ]
   }
   const mpx = mainCompilation.__mpx__
+  this._compilation = mainCompilation
+  this._compiler = {
+    inputFileSystem: () => {}
+  }
+  this._module = {
+    issuer: {
+      rawRequest: ''
+    }
+  }
   const {resourcePath, queryObj} = parseRequest(this.resource)
   const packageName = queryObj.packageName || mpx.currentPackageRoot || 'main'
   const pagesMap = mpx.pagesMap
@@ -219,6 +244,7 @@ module.exports = function (src, filePath, jestConfig) {
 
   // template
   outputRes.template += '/* template */\n'
+  jsonCompiler.call(this, json.content)
   const template = parts.template
 
   if (template) {
