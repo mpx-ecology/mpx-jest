@@ -28,15 +28,17 @@ module.exports = function (raw = '{}') {
   const mpx = mainCompilation.__mpx__
 
   const emitWarning = (msg) => {
-    this.emitWarning(
-      new Error('[json compiler][' + this.resource + ']: ' + msg)
-    )
+    // this.emitWarning(
+    //   new Error('[json compiler][' + this.resource + ']: ' + msg)
+    // )
+    console.warn(msg)
   }
 
   const emitError = (msg) => {
-    this.emitError(
-      new Error('[json compiler][' + this.resource + ']: ' + msg)
-    )
+    // this.emitError(
+    //   new Error('[json compiler][' + this.resource + ']: ' + msg)
+    // )
+    console.error(msg)
   }
 
   const stringifyRequest = r => loaderUtils.stringifyRequest(this, r)
@@ -136,13 +138,6 @@ module.exports = function (raw = '{}') {
     })
   }
 
-  // const deleteEntry = (name) => {
-  //   const index = this._compilation._preparedEntrypoints.findIndex(slot => slot.name === name)
-  //   if (index >= 0) {
-  //     this._compilation._preparedEntrypoints.splice(index, 1)
-  //   }
-  // }
-
   let callbacked = false
   const callback = (err, processOutput) => {
     checkEntryDeps(() => {
@@ -191,19 +186,6 @@ module.exports = function (raw = '{}') {
     fixUsingComponent(json.usingComponents, mode, emitWarning)
   }
 
-  // 快应用补全json配置，必填项
-  if (mode === 'qa' && isApp) {
-    const defaultConf = {
-      package: '',
-      name: '',
-      icon: 'assets/images/logo.png',
-      versionName: '',
-      versionCode: 1,
-      minPlatformVersion: 1080
-    }
-    json = Object.assign({}, defaultConf, json)
-  }
-
   const rulesRunnerOptions = {
     mode,
     mpx,
@@ -241,8 +223,10 @@ module.exports = function (raw = '{}') {
 
   const resolve = (context, request, callback) => {
     const { queryObj } = parseRequest(request)
-    context = queryObj.context || context
-    return this.resolve(context, request, callback)
+    const requestPath = path.resolve(context, request)
+    callback(null, requestPath)
+    // context = queryObj.context || context
+    // return this.resolve(context, request, callback)
   }
 
   const processComponents = (components, context, callback) => {
@@ -581,7 +565,8 @@ module.exports = function (raw = '{}') {
               emitWarning(`Current page [${resourcePath}] which is imported from [${this.resourcePath}] has been registered in pagesMap already, it will be ignored, please check it and remove the redundant page declaration!`)
               return callback()
             }
-            currentEntry.addChild(getEntryNode(resource, 'Page'))
+            // TODO fix later
+            // currentEntry.addChild(getEntryNode(resource, 'Page'))
             pagesMap[resourcePath] = pageName
             if (tarRoot && subPackagesCfg[tarRoot]) {
               subPackagesCfg[tarRoot].pages.push(toPosix(path.relative(tarRoot, pageName)))

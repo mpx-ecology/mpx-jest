@@ -2,6 +2,7 @@ const JSON5 = require('json5')
 const path = require('path')
 const parseComponent = require('./parser')
 const loaderUtils = require('loader-utils')
+const hash = require('hash-sum')
 const parseRequest = require('./utils/parse-request')
 const fixUsingComponent = require('./utils/fix-using-component')
 const normalize = require('./utils/normalize')
@@ -15,6 +16,8 @@ const transformedFiles = new Map
 module.exports = function (src, filePath, jestConfig) {
   this.resource = filePath
   this.resourcePath = filePath
+  this.context = path.dirname(filePath)
+  this.resolve = path.resolve
   // mock loader，后续可以改为implement继承一个class的方式
   this.cacheable = () => {}
   this.async = () => {}
@@ -32,7 +35,10 @@ module.exports = function (src, filePath, jestConfig) {
       defs: {
         ...(jestConfig.config && jestConfig.config.globals && jestConfig.config.globals)
       },
-      getEntryNode: () => {}
+      getEntryNode: () => {},
+      pathHash: (resourcePath) => {
+        return hash(resourcePath)
+      }
     },
     outputOptions: {},
     compiler: {},
