@@ -7,7 +7,6 @@ const parseRequest = require('./utils/parse-request')
 const fixUsingComponent = require('./utils/fix-using-component')
 const normalize = require('./utils/normalize')
 const templateCompiler = require('./template-compiler/index')
-const jsonCompiler = require('./json-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
 const transformedFiles = new Map
@@ -250,7 +249,6 @@ module.exports = function (src, filePath, jestConfig) {
 
   // template
   outputRes.template += '/* template */\n'
-  jsonCompiler.call(this, json.content)
   const template = parts.template
 
   if (template) {
