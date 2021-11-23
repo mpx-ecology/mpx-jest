@@ -6,18 +6,7 @@ const path = require('path')
 
 module.exports = function (raw, outputRes, options) {
   const { resourcePath, queryObj } = parseRequest(this.resource)
-  const mainCompilation = {
-    __mpx__: {
-      componentsMap: {
-        main: {}
-      },
-      pagesMap: {},
-      usingComponents: {},
-      mode: 'wx',
-      srcMode: 'wx'
-    }
-  }
-  const mpx = mainCompilation.__mpx__
+  const mpx = this.mpx
   const mode = mpx.mode
   const env = mpx.env
   const defs = mpx.defs
@@ -29,15 +18,17 @@ module.exports = function (raw, outputRes, options) {
   const wxsContentMap = mpx.wxsContentMap
 
   const warn = (msg) => {
-    this.emitWarning(
-      new Error('[template compiler][' + this.resource + ']: ' + msg)
-    )
+    console.log('[template compiler][' + this.resource + ']: ' + msg)
+    // this.emitWarning(
+    //   new Error('[template compiler][' + this.resource + ']: ' + msg)
+    // )
   }
 
   const error = (msg) => {
-    this.emitError(
-      new Error('[template compiler][' + this.resource + ']: ' + msg)
-    )
+    console.log('[template compiler][' + this.resource + ']: ' + msg)
+    // this.emitError(
+    //   new Error('[template compiler][' + this.resource + ']: ' + msg)
+    // )
   }
 
   const parsed = compiler.parse(raw, {

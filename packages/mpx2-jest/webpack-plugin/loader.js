@@ -32,11 +32,15 @@ module.exports = function (src, filePath, jestConfig) {
       mode: 'wx',
       srcMode: 'wx',
       defs: {
-        ...(jestConfig.config && jestConfig.config.globals && jestConfig.config.globals)
+        ...(jestConfig.config && jestConfig.config.globals && jestConfig.config.globals && jestConfig.config.globals.defs)
       },
       getEntryNode: () => {},
       pathHash: (resourcePath) => {
         return hash(resourcePath)
+      },
+      i18n: {
+        locale: 'zh-CN',
+        message: ''
       }
     },
     outputOptions: {},
@@ -48,6 +52,7 @@ module.exports = function (src, filePath, jestConfig) {
     ]
   }
   const mpx = mainCompilation.__mpx__
+  this.mpx = mpx
   this._compilation = mainCompilation
   this._compiler = {
     inputFileSystem: () => {}
@@ -154,16 +159,16 @@ module.exports = function (src, filePath, jestConfig) {
     const i18nWxsRequest = i18nWxsLoaderPath + '!' + i18nWxsPath
     const expression = `require(${loaderUtils.stringifyRequest(loaderContext, i18nWxsRequest)})`
     const deps = []
-    this._module.parser.parse(expression, {
-      current: {
-        addDependency: dep => {
-          dep.userRequest = i18nMethodsVar
-          deps.push(dep)
-        }
-      },
-      module: this._module
-    })
-    this._module.addVariable(i18nMethodsVar, expression, deps)
+    // this._module.parser.parse(expression, {
+    //   current: {
+    //     addDependency: dep => {
+    //       dep.userRequest = i18nMethodsVar
+    //       deps.push(dep)
+    //     }
+    //   },
+    //   module: this._module
+    // })
+    // this._module.addVariable(i18nMethodsVar, expression, deps)
 
     globalInjectCode += `global.i18nMethods = ${i18nMethodsVar}\n`
   }

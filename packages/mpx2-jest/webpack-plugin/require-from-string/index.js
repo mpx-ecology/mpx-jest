@@ -177,9 +177,6 @@ class RequireFromString{
 
     if (typeof this._environment.getVmContext === 'function') {
       const vmContext = this._environment.getVmContext();
-      vmContext.getApp = () => {
-        return {}
-      }
       if (vmContext) {
         runScript = script.runInContext(vmContext, {
           filename
@@ -225,7 +222,7 @@ class RequireFromString{
       enumerable: true,
       value: this._mainModule
     });
-    
+
     try {
       compiledFunction(
         module, // module object
@@ -238,7 +235,8 @@ class RequireFromString{
         ...lastArgs.filter(notEmpty)
       );
     } catch (error) {
-      this.handleExecutionError(error, module);
+      console.error(error)
+      // this.handleExecutionError(error, module);
     }
 
     this._isCurrentlyExecutingManualMock = origCurrExecutingManualMock;
