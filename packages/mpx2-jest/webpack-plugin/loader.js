@@ -1,11 +1,9 @@
 const JSON5 = require('json5')
 const path = require('path')
-const parseComponent = require('./parser')
-const loaderUtils = require('loader-utils')
+const parseComponent = require('@mpxjs/webpack-plugin/lib/parser')
 const hash = require('hash-sum')
-const parseRequest = require('./utils/parse-request')
-const fixUsingComponent = require('./utils/fix-using-component')
-const normalize = require('./utils/normalize')
+const parseRequest = require('@mpxjs/webpack-plugin/lib/utils/parse-request')
+const fixUsingComponent = require('@mpxjs/webpack-plugin/lib/utils/fix-using-component')
 const templateCompiler = require('./template-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
@@ -101,13 +99,6 @@ module.exports = function (src, filePath, jestConfig) {
   }
 
   ctorType = 'component'
-  // mock loaderContext
-  const loaderContext = {
-    loaders: [{}],
-    loaderIndex: 0,
-    resource
-  }
-
   const isProduction = this.minimize || process.env.NODE_ENV === 'production'
 
   //TODO 待调整
@@ -121,15 +112,12 @@ module.exports = function (src, filePath, jestConfig) {
     env
   })
 
-  const callback = () => {
-  }
   const hasScoped = false
   const templateAttrs = parts.template && parts.template.attrs
   const hasComment = templateAttrs && templateAttrs.comments
   const isNative = false
 
   let usingComponents = [].concat(Object.keys(mpx.usingComponents))
-  let componentGenerics = {}
   if (parts.json && parts.json.content) {
     try {
       let ret = JSON5.parse(parts.json.content)
@@ -137,11 +125,9 @@ module.exports = function (src, filePath, jestConfig) {
         fixUsingComponent(ret.usingComponents, mode)
         usingComponents = usingComponents.concat(Object.keys(ret.usingComponents))
       }
-      if (ret.componentGenerics) {
-        componentGenerics = Object.assign({}, ret.componentGenerics)
-      }
     } catch (e) {
-      return callback(e)
+      console.log('error:', e)
+      return e
     }
   }
 
@@ -154,22 +140,6 @@ module.exports = function (src, filePath, jestConfig) {
   if (ctorType === 'app' && i18n && !mpx.forceDisableInject) {
     globalInjectCode += `global.i18n = ${JSON.stringify({locale: i18n.locale, version: 0})}\n`
     const i18nMethodsVar = 'i18nMethods'
-    const i18nWxsPath = normalize.lib('runtime/i18n.wxs')
-    const i18nWxsLoaderPath = normalize.lib('wxs/wxs-i18n-loader.js')
-    const i18nWxsRequest = i18nWxsLoaderPath + '!' + i18nWxsPath
-    const expression = `require(${loaderUtils.stringifyRequest(loaderContext, i18nWxsRequest)})`
-    const deps = []
-    // this._module.parser.parse(expression, {
-    //   current: {
-    //     addDependency: dep => {
-    //       dep.userRequest = i18nMethodsVar
-    //       deps.push(dep)
-    //     }
-    //   },
-    //   module: this._module
-    // })
-    // this._module.addVariable(i18nMethodsVar, expression, deps)
-
     globalInjectCode += `global.i18nMethods = ${i18nMethodsVar}\n`
   }
   // 注入构造函数
@@ -266,6 +236,7 @@ module.exports = function (src, filePath, jestConfig) {
       moduleId,
       root: projectRoot
     }
+    this.usingComponents = usingComponents
     outputRes = templateCompiler.call(this, parts.template.content, outputRes, options)
   }
 

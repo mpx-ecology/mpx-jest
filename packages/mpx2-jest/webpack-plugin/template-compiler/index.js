@@ -1,7 +1,7 @@
-const compiler = require('./compiler')
-const bindThis = require('./bind-this').transform
-const parseRequest = require('../utils/parse-request')
-const matchCondition = require('../utils/match-condition')
+const compiler = require('@mpxjs/webpack-plugin/lib/template-compiler/compiler')
+const bindThis = require('@mpxjs/webpack-plugin/lib/template-compiler/bind-this').transform
+const parseRequest = require('@mpxjs/webpack-plugin/lib/utils/parse-request')
+const matchCondition = require('@mpxjs/webpack-plugin/lib/utils/match-condition')
 const path = require('path')
 
 module.exports = function (raw, outputRes, options) {
@@ -98,7 +98,6 @@ ${e.stack}`)
     return result
   }
 
-  // todo 此处在loader中往其他模块addDep更加危险，考虑修改为通过抽取后的空模块的module.exports来传递信息
   let globalInjectCode = renderResult.code + '\n'
 
   if (meta.computed) {
