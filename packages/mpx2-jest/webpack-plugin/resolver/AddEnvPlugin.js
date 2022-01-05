@@ -1,8 +1,8 @@
 const path = require('path')
-const stringifyQuery = require('../utils/stringify-query')
+const stringifyQuery = require('@mpxjs/webpack-plugin/lib/utils/stringify-query')
 const parseQuery = require('loader-utils').parseQuery
-const addInfix = require('../utils/add-infix')
-const matchCondition = require('../utils/match-condition')
+const addInfix = require('@mpxjs/webpack-plugin/lib/utils/add-infix')
+const matchCondition = require('@mpxjs/webpack-plugin/lib/utils/match-condition')
 
 module.exports = class AddEnvPlugin {
   constructor (source, env, fileConditionRules, target) {

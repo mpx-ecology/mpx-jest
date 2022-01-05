@@ -8,6 +8,18 @@ const templateCompiler = require('./template-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
 const transformedFiles = new Map
+
+function getGlobalDefs (globals) {
+  if (!globals) return {}
+  const keys = Object.keys(globals)
+  const defs = {}
+  keys.forEach((key) => {
+    if (typeof globals[key] === 'string') {
+      defs[key] = globals[key]
+    }
+  })
+  return defs
+}
 // content, resource, cb
 //src, filePath, jestConfig
 module.exports = function (src, filePath, jestConfig) {
@@ -19,6 +31,7 @@ module.exports = function (src, filePath, jestConfig) {
   this.cacheable = () => {}
   this.async = () => {}
   const resource = filePath
+  const defs = getGlobalDefs(jestConfig.globals)
   let content = src
   const mainCompilation = {
     __mpx__: {
@@ -29,9 +42,7 @@ module.exports = function (src, filePath, jestConfig) {
       usingComponents: {},
       mode: 'wx',
       srcMode: 'wx',
-      defs: {
-        ...(jestConfig.config && jestConfig.config.globals && jestConfig.config.globals && jestConfig.config.globals.defs)
-      },
+      defs: defs,
       getEntryNode: () => {},
       pathHash: (resourcePath) => {
         return hash(resourcePath)
@@ -67,7 +78,6 @@ module.exports = function (src, filePath, jestConfig) {
   const projectRoot = mpx.projectRoot
   const mode = mpx.mode
   const env = mpx.env
-  const defs = mpx.defs
   const i18n = mpx.i18n
   const globalSrcMode = mpx.srcMode
   const localSrcMode = queryObj.mode
