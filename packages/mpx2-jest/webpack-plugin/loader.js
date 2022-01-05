@@ -9,13 +9,19 @@ const babel = require("@babel/core")
 const fs = require('fs')
 const transformedFiles = new Map
 
-function getGlobalDefs (globals) {
-  if (!globals) return {}
-  const keys = Object.keys(globals)
+function getGlobalDefs (jestConfig) {
+  if (!jestConfig) return {}
+  let copyGlobals = {}
+  if (jestConfig.globals) {
+    copyGlobals = jestConfig.globals
+  } else if (jestConfig.config && jestConfig.config.globals) {
+    copyGlobals = jestConfig.config.globals
+  }
+  const keys = Object.keys(copyGlobals)
   const defs = {}
   keys.forEach((key) => {
-    if (typeof globals[key] === 'string') {
-      defs[key] = globals[key]
+    if (typeof copyGlobals[key] === 'string') {
+      defs[key] = copyGlobals[key]
     }
   })
   return defs
@@ -31,7 +37,7 @@ module.exports = function (src, filePath, jestConfig) {
   this.cacheable = () => {}
   this.async = () => {}
   const resource = filePath
-  const defs = getGlobalDefs(jestConfig.globals)
+  const defs = getGlobalDefs(jestConfig)
   let content = src
   const mainCompilation = {
     __mpx__: {
