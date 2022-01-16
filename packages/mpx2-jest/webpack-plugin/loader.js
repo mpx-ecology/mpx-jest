@@ -4,6 +4,7 @@ const parseComponent = require('@mpxjs/webpack-plugin/lib/parser')
 const hash = require('hash-sum')
 const parseRequest = require('@mpxjs/webpack-plugin/lib/utils/parse-request')
 const fixUsingComponent = require('@mpxjs/webpack-plugin/lib/utils/fix-using-component')
+const mpxJSON = require('./utils/mpx-json')
 const templateCompiler = require('./template-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
@@ -136,7 +137,12 @@ module.exports = function (src, filePath, jestConfig) {
   let usingComponents = [].concat(Object.keys(mpx.usingComponents))
   if (parts.json && parts.json.content) {
     try {
-      let ret = JSON5.parse(parts.json.content)
+      let ret = {}
+      if (parts.json.useJSONJS) {
+        text = mpxJSON.compileMPXJSONText({ source: parts.json.content, defs, filePath: this.resourcePath })
+        parts.json.content = text
+      }
+      ret = JSON5.parse(parts.json.content)
       if (ret.usingComponents) {
         fixUsingComponent(ret.usingComponents, mode)
         usingComponents = usingComponents.concat(Object.keys(ret.usingComponents))
