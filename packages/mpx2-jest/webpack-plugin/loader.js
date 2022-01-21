@@ -148,6 +148,7 @@ module.exports = function (src, filePath, jestConfig) {
         usingComponents = usingComponents.concat(Object.keys(ret.usingComponents))
       }
     } catch (e) {
+
       console.log('error:', e)
       return e
     }
