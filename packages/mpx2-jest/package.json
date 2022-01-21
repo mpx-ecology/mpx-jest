@@ -1,6 +1,6 @@
 {
   "name": "@mpxjs/mpx-jest",
-  "version": "2.6.114-alpha.1",
+  "version": "2.6.114-alpha.2",
   "description": "mpx jest transformer",
   "main": "packages/mpx2-jest/webpack-plugin/mpx-jest.js",
   "scripts": {
