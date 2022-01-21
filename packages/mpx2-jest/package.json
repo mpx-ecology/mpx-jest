@@ -1,6 +1,6 @@
 {
   "name": "@mpxjs/mpx-jest",
-  "version": "2.6.114-alpha.0",
+  "version": "2.6.114-alpha.1",
   "description": "mpx jest transformer",
   "main": "packages/mpx2-jest/webpack-plugin/mpx-jest.js",
   "scripts": {
@@ -23,5 +23,6 @@
   "homepage": "https://github.com/mpx-ecology/mpx-jest#readme",
   "devDependencies": {
     "lerna": "^4.0.0"
-  }
+  },
+  "gitHead": "53c4e133265d4d1ca8b5d8c6ed67fd9f282a1216"
 }
