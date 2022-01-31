@@ -2,7 +2,7 @@
   "name": "@mpxjs/mpx-jest",
   "version": "0.0.14",
   "description": "mpx jest transformer",
-  "main": "packages/mpx2-jest/webpack-plugin/mpx-jest.js",
+  "main": "mpx-jest.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
