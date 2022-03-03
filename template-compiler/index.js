@@ -1,7 +1,7 @@
 const compiler = require('@mpxjs/webpack-plugin/lib/template-compiler/compiler')
 const bindThis = require('@mpxjs/webpack-plugin/lib/template-compiler/bind-this').transform
 const parseRequest = require('@mpxjs/webpack-plugin/lib/utils/parse-request')
-const matchCondition = require('@mpxjs/webpack-plugin/lib/utils/match-condition')
+const matchCondition = require('@mpxjs/webpack-plugin/lib/utils/match-condition').matchCondition
 const path = require('path')
 
 module.exports = function (raw, outputRes, options) {

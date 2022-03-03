@@ -1,7 +1,7 @@
 const path = require('path')
 const stringifyQuery = require('@mpxjs/webpack-plugin/lib/utils/stringify-query')
 const parseQuery = require('loader-utils').parseQuery
-const matchCondition = require('@mpxjs/webpack-plugin/lib/utils/match-condition')
+const matchCondition = require('@mpxjs/webpack-plugin/lib/utils/match-condition').matchCondition
 const addInfix = require('@mpxjs/webpack-plugin/lib/utils/add-infix')
 
 module.exports = class AddModePlugin {
