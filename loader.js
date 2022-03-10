@@ -277,6 +277,11 @@ module.exports = function (src, filePath, jestConfig) {
   }
   transformedFiles.set(filePath, true)
   return {
-    code: 'module.exports = '+JSON.stringify(outputRes)
+    code: `module.exports = {
+      script: function () {${outputRes.script}},
+      json: ${JSON.stringify(outputRes.json)},
+      template: ${JSON.stringify(outputRes.template)},
+      style: ${JSON.stringify(outputRes.style)}
+    }`
   }
 }
