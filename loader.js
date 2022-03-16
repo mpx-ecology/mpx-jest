@@ -315,7 +315,6 @@ function generateSourceMap (filename, source, generated) {
       originScriptStartLine = index
     }
   })
-  console.log('generatedScriptStartLine===>>>', filename, generatedScriptStartLine, generatedScriptEndLine, originScriptStartLine)
 
   for (let i = generatedScriptStartLine; i <= generatedScriptEndLine; i++) {
     if (emptyRE.test(generated.split(splitRE)[i])) {
