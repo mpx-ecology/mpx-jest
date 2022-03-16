@@ -8,27 +8,15 @@ const mpxJSON = require('./utils/mpx-json')
 const templateCompiler = require('./template-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
+const SourceMapGenerator = require('source-map').SourceMapGenerator
+
 const transformedFiles = new Map
 
-function getGlobalDefs (jestConfig) {
-  if (!jestConfig) return {}
-  let copyGlobals = {}
-  if (jestConfig.globals) {
-    copyGlobals = jestConfig.globals
-  } else if (jestConfig.config && jestConfig.config.globals) {
-    copyGlobals = jestConfig.config.globals
-  }
-  const keys = Object.keys(copyGlobals)
-  const defs = {}
-  keys.forEach((key) => {
-    if (typeof copyGlobals[key] === 'string') {
-      defs[key] = copyGlobals[key]
-    }
-  })
-  return defs
-}
-// content, resource, cb
-//src, filePath, jestConfig
+const splitRE = /\r?\n/g
+const emptyRE = /^(?:\/\/)?\s*$/
+let scriptSrcContent = null
+let scriptSrcPath = null
+
 module.exports = function (src, filePath, jestConfig) {
   this.resource = filePath
   this.resourcePath = filePath
@@ -96,7 +84,6 @@ module.exports = function (src, filePath, jestConfig) {
     json: '',
     style: ''
   }
-
   // 支持资源query传入page或component支持页面/组件单独编译
   if ((queryObj.component && !componentsMap[resourcePath]) || (queryObj.page && !pagesMap[resourcePath])) {
     let entryChunkName
@@ -191,38 +178,37 @@ module.exports = function (src, filePath, jestConfig) {
     if (script.lang === 'ts') {
       plugins.push("@babel/plugin-transform-typescript")
     }
+    let srcContent = ''
     if (script.src) {
       // 传入resourcePath以确保后续处理中能够识别src引入的资源为组件主资源
       const basePathDir = path.dirname(filePath) + '/'
-      const absolutePath = require.resolve(script.src, {paths: [basePathDir]})
-      const srcContent = babel.transformSync(
-        fs.readFileSync(absolutePath).toString('utf8'),
-        {
-          plugins: plugins
-        }
-      ).code
-      outputRes.script = srcContent
+      scriptSrcPath = require.resolve(script.src, {paths: [basePathDir]})
+      scriptSrcContent = fs.readFileSync(scriptSrcPath).toString('utf8')
+      srcContent = scriptSrcContent
     } else {
-      const srcCode = babel.transformSync(
-        script.content,
-        {
-          plugins: plugins
-        }
-      ).code
-      outputRes.script += srcCode
+      srcContent = script.content
     }
+    const srcCode = babel.transformSync(
+      srcContent,
+      {
+        plugins: plugins,
+        sourceMaps: true
+      }
+    )
+    outputRes.script += srcCode.code
+
   } else {
     switch (ctorType) {
       case 'app':
-        outputRes.script += 'import {createApp} from "@mpxjs/core"\n' +
+        outputRes.script += 'const {createApp} = require("@mpxjs/core")\n' +
           'createApp({})\n'
         break
       case 'page':
-        outputRes.script += 'import {createPage} from "@mpxjs/core"\n' +
+        outputRes.script += 'const {createPage} = require("@mpxjs/core")\n' +
           'createPage({})\n'
         break
       case 'component':
-        outputRes.script += 'import {createComponent} from "@mpxjs/core"\n' +
+        outputRes.script += 'const {createComponent} = require("@mpxjs/core")\n' +
           'createComponent({})\n'
     }
     outputRes.script += '\n'
@@ -276,12 +262,80 @@ module.exports = function (src, filePath, jestConfig) {
     }
   }
   transformedFiles.set(filePath, true)
-  return {
-    code: `module.exports = {
+  const outputCode = `module.exports = {
       script: function () {${outputRes.script}},
       json: ${JSON.stringify(outputRes.json)},
       template: ${JSON.stringify(outputRes.template)},
       style: ${JSON.stringify(outputRes.style)}
     }`
+  let outputCodeSourceMap = null
+  if (jestConfig.collectCoverage) {
+    outputCodeSourceMap = script.src? generateSourceMap(scriptSrcPath, scriptSrcContent, outputCode) : generateSourceMap(filePath, src, outputCode)
   }
+
+  return {
+    code: outputCode,
+    map: outputCodeSourceMap
+  }
+}
+
+function getGlobalDefs (jestConfig) {
+  if (!jestConfig) return {}
+  let copyGlobals = {}
+  if (jestConfig.globals) {
+    copyGlobals = jestConfig.globals
+  } else if (jestConfig.config && jestConfig.config.globals) {
+    copyGlobals = jestConfig.config.globals
+  }
+  const keys = Object.keys(copyGlobals)
+  const defs = {}
+  keys.forEach((key) => {
+    if (typeof copyGlobals[key] === 'string') {
+      defs[key] = copyGlobals[key]
+    }
+  })
+  return defs
+}
+// content, resource, cb
+//src, filePath, jestConfig
+function generateSourceMap (filename, source, generated) {
+  const map = new SourceMapGenerator()
+  map.setSourceContent(filename, source)
+  let generatedScriptStartLine, generatedScriptEndLine, originScriptStartLine, originScriptStartEnd
+  generated.split(splitRE).forEach((line, index) => {
+    if (line.indexOf('createComponent') > -1) {
+      generatedScriptStartLine = index
+    }
+    if (line.indexOf('json:') > -1) {
+      generatedScriptEndLine = index - 1
+    }
+  })
+  source.split(splitRE).forEach((line, index) => {
+    if (line.indexOf('createComponent({') > -1) {
+      originScriptStartLine = index
+    }
+  })
+  console.log('generatedScriptStartLine===>>>', filename, generatedScriptStartLine, generatedScriptEndLine, originScriptStartLine)
+
+  for (let i = generatedScriptStartLine; i <= generatedScriptEndLine; i++) {
+    if (emptyRE.test(generated.split(splitRE)[i])) {
+      continue
+    }
+    if (emptyRE.test(source.split(splitRE)[originScriptStartLine])) {
+      originScriptStartLine++
+    }
+    map.addMapping({
+      source: filename,
+      original: {
+        line: originScriptStartLine++,
+        column: 0
+      },
+      generated: {
+        line: i,
+        column: 0
+      }
+    })
+  }
+
+  return map.toJSON()
 }
