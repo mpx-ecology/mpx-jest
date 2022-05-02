@@ -192,6 +192,7 @@ module.exports = function (src, filePath, jestConfig) {
       srcContent,
       {
         plugins: plugins,
+        configFile: false,
         sourceMaps: true
       }
     )
