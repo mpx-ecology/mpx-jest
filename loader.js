@@ -175,9 +175,6 @@ module.exports = function (src, filePath, jestConfig) {
   if (script) {
     scriptSrcMode = script.mode || scriptSrcMode
     const plugins = ["@babel/plugin-transform-modules-commonjs"]
-    if (script.lang === 'ts') {
-      plugins.push("@babel/plugin-transform-typescript")
-    }
     let srcContent = ''
     if (script.src) {
       // 传入resourcePath以确保后续处理中能够识别src引入的资源为组件主资源
@@ -187,6 +184,9 @@ module.exports = function (src, filePath, jestConfig) {
       srcContent = scriptSrcContent
     } else {
       srcContent = script.content
+    }
+    if (script.lang === 'ts' || scriptSrcPath.endsWith('.ts')) {
+      plugins.push("@babel/plugin-transform-typescript")
     }
     const srcCode = babel.transformSync(
       srcContent,
