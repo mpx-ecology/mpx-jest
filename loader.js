@@ -15,7 +15,7 @@ const transformedFiles = new Map
 const splitRE = /\r?\n/g
 const emptyRE = /^(?:\/\/)?\s*$/
 let scriptSrcContent = null
-let scriptSrcPath = null
+let scriptSrcPath = ''
 
 module.exports = function (src, filePath, jestConfig) {
   this.resource = filePath
@@ -186,7 +186,13 @@ module.exports = function (src, filePath, jestConfig) {
       srcContent = script.content
     }
     if (script.lang === 'ts' || scriptSrcPath.endsWith('.ts')) {
-      plugins.push("@babel/plugin-transform-typescript")
+      // plugins.push("@babel/plugin-transform-typescript")
+      plugins.push([
+        "@babel/plugin-transform-typescript",
+        {
+          "onlyRemoveTypeImports": true,
+        }
+      ])
     }
     const srcCode = babel.transformSync(
       srcContent,
