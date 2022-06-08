@@ -185,7 +185,7 @@ module.exports = function (src, filePath, jestConfig) {
     } else {
       srcContent = script.content
     }
-    if (script.lang === 'ts' || scriptSrcPath.endsWith('.ts')) {
+    if (script.lang === 'ts' || (scriptSrcPath && scriptSrcPath.endsWith('.ts'))) {
       // plugins.push("@babel/plugin-transform-typescript")
       plugins.push([
         "@babel/plugin-transform-typescript",
