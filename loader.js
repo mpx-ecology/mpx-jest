@@ -9,6 +9,7 @@ const templateCompiler = require('./template-compiler/index')
 const babel = require("@babel/core")
 const fs = require('fs')
 const SourceMapGenerator = require('source-map').SourceMapGenerator
+const MS = require('magic-string').default
 
 const transformedFiles = new Map
 
@@ -84,23 +85,6 @@ module.exports = function (src, filePath, jestConfig) {
     json: '',
     style: ''
   }
-  // 支持资源query传入page或component支持页面/组件单独编译
-  if ((queryObj.component && !componentsMap[resourcePath]) || (queryObj.page && !pagesMap[resourcePath])) {
-    let entryChunkName
-    const rawRequest = this._module.rawRequest
-    const _preparedEntrypoints = this._compilation._preparedEntrypoints
-    for (let i = 0; i < _preparedEntrypoints.length; i++) {
-      if (rawRequest === _preparedEntrypoints[i].request) {
-        entryChunkName = _preparedEntrypoints[i].name
-        break
-      }
-    }
-    if (queryObj.component) {
-      componentsMap[resourcePath] = entryChunkName || 'noEntryComponent'
-    } else {
-      pagesMap[resourcePath] = entryChunkName || 'noEntryPage'
-    }
-  }
 
   ctorType = 'component'
   const isProduction = this.minimize || process.env.NODE_ENV === 'production'
@@ -142,15 +126,15 @@ module.exports = function (src, filePath, jestConfig) {
   }
 
   // 注入模块id及资源路径
-  let globalInjectCode = `global.currentModuleId = ${JSON.stringify(moduleId)}\n`
+  let globalInjectCode = `global.currentModuleId = ${JSON.stringify(moduleId)};`
   if (!isProduction) {
-    globalInjectCode += `global.currentResource = ${JSON.stringify(filePath)}\n`
+    globalInjectCode += `global.currentResource = ${JSON.stringify(filePath)};`
   }
   // TODO i18n 延后处理
   if (ctorType === 'app' && i18n && !mpx.forceDisableInject) {
-    globalInjectCode += `global.i18n = ${JSON.stringify({locale: i18n.locale, version: 0})}\n`
+    globalInjectCode += `global.i18n = ${JSON.stringify({locale: i18n.locale, version: 0})};`
     const i18nMethodsVar = 'i18nMethods'
-    globalInjectCode += `global.i18nMethods = ${i18nMethodsVar}\n`
+    globalInjectCode += `global.i18nMethods = ${i18nMethodsVar};`
   }
   // 注入构造函数
   let ctor = 'App'
@@ -163,10 +147,10 @@ module.exports = function (src, filePath, jestConfig) {
   } else if (ctorType === 'component') {
     ctor = 'Component'
   }
-  globalInjectCode += `global.currentCtor = global.${ctor}\n`
+  globalInjectCode += `global.currentCtor = global.${ctor};`
   globalInjectCode += `global.currentCtorType = ${JSON.stringify(ctor.replace(/^./, (match) => {
     return match.toLowerCase()
-  }))}\n`
+  }))};`
 
   // <script>
   outputRes.script += '/* script */\n'
@@ -199,7 +183,8 @@ module.exports = function (src, filePath, jestConfig) {
       {
         plugins: plugins,
         configFile: false,
-        sourceMaps: true
+        sourceMaps: true,
+        retainLines: true
       }
     )
     outputRes.script += srcCode.code
@@ -222,7 +207,7 @@ module.exports = function (src, filePath, jestConfig) {
   }
 
   if (scriptSrcMode) {
-    globalInjectCode += `global.currentSrcMode = ${JSON.stringify(scriptSrcMode)}\n`
+    globalInjectCode += `global.currentSrcMode = ${JSON.stringify(scriptSrcMode)};`
   }
 
   // styles
@@ -257,18 +242,26 @@ module.exports = function (src, filePath, jestConfig) {
   }
 
   if (!mpx.forceDisableInject) {
-    outputRes.script = globalInjectCode + '\n' + outputRes.script
+    outputRes.script = outputRes.script + '\n' + globalInjectCode
   }
 
   if (transformedFiles.get(filePath)) {
     const res = require("@babel/core").transformSync(outputRes.script, {
       plugins: ["@babel/plugin-transform-modules-commonjs"],
+      configFile: false,
+      sourceMaps: true,
+      retainLines: true
     });
     return {
       code: res.code
     }
   }
   transformedFiles.set(filePath, true)
+  // 处理string，保持执行行列和源码行列对应
+  const ms = new MS(outputRes.script)
+  const scriptEndIndex = outputRes.script.indexOf('"use strict";')
+  ms.move(0, scriptEndIndex + 14, outputRes.script.length)
+  outputRes.script = ms.toString()
   const outputCode = `module.exports = {
       script: function () {${outputRes.script}},
       json: ${JSON.stringify(outputRes.json)},
