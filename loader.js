@@ -258,10 +258,8 @@ module.exports = function (src, filePath, jestConfig) {
   }
   transformedFiles.set(filePath, true)
   // 处理string，保持执行行列和源码行列对应
-  // const ms = new MS(outputRes.script)
-  // const scriptEndIndex = outputRes.script.indexOf('"use strict";')
-  // ms.move(0, scriptEndIndex + 14, outputRes.script.length)
-  // outputRes.script = ms.toString()
+  const scriptEndIndex = outputRes.script.indexOf('"use strict";')
+  outputRes.script = outputRes.script.substring(0, scriptEndIndex).replace(/\r|\n/g, '') + outputRes.script.substring(scriptEndIndex + 14)
   const outputCode = `module.exports = {
       script: function () {${outputRes.script}},
       json: ${JSON.stringify(outputRes.json)},
