@@ -242,7 +242,7 @@ module.exports = function (src, filePath, jestConfig) {
   }
 
   if (!mpx.forceDisableInject) {
-    outputRes.script = outputRes.script + '\n' + globalInjectCode
+    outputRes.script = globalInjectCode + '\n' + outputRes.script
   }
 
   if (transformedFiles.get(filePath)) {
@@ -258,10 +258,10 @@ module.exports = function (src, filePath, jestConfig) {
   }
   transformedFiles.set(filePath, true)
   // 处理string，保持执行行列和源码行列对应
-  const ms = new MS(outputRes.script)
-  const scriptEndIndex = outputRes.script.indexOf('"use strict";')
-  ms.move(0, scriptEndIndex + 14, outputRes.script.length)
-  outputRes.script = ms.toString()
+  // const ms = new MS(outputRes.script)
+  // const scriptEndIndex = outputRes.script.indexOf('"use strict";')
+  // ms.move(0, scriptEndIndex + 14, outputRes.script.length)
+  // outputRes.script = ms.toString()
   const outputCode = `module.exports = {
       script: function () {${outputRes.script}},
       json: ${JSON.stringify(outputRes.json)},
