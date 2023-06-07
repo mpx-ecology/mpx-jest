@@ -3,6 +3,7 @@ const path = require('path')
 const parseComponent = require('@mpxjs/webpack-plugin/lib/parser')
 const hash = require('hash-sum')
 const parseRequest = require('@mpxjs/webpack-plugin/lib/utils/parse-request')
+const fixUsingComponent = require('./utils/fix-using-component')
 const mpxJSON = require('./utils/mpx-json')
 const templateCompiler = require('./template-compiler/index')
 const babel = require("@babel/core")
@@ -114,6 +115,7 @@ module.exports = function (src, filePath, jestConfig) {
       }
       ret = JSON5.parse(parts.json.content)
       if (ret.usingComponents) {
+        fixUsingComponent(ret.usingComponents, mode)
         usingComponents = usingComponents.concat(Object.keys(ret.usingComponents))
       }
     } catch (e) {
