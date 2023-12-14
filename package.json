@@ -1,6 +1,6 @@
 {
   "name": "@mpxjs/mpx-jest",
-  "version": "0.0.27",
+  "version": "0.0.30",
   "description": "mpx jest transformer",
   "main": "mpx-jest.js",
   "scripts": {
@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@babel/core": "^7.18.10",
+    "@mpxjs/utils": "^2.8.15",
     "@mpxjs/webpack-plugin": "^2.7.47",
     "json5": "^2.2.1",
     "magic-string": "^0.26.2"

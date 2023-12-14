@@ -75,7 +75,7 @@ module.exports = function (raw, outputRes, options) {
 
   const rawCode = `global.currentInject = {
     moduleId: ${JSON.stringify(options.moduleId)},
-    render: function (_i, _c, _r) {
+    render: function (_i, _c, _r, _sc) {
       ${compiler.genNode(ast)}_r();
     }
 };\n`
