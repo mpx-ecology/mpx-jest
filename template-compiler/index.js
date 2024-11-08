@@ -35,6 +35,7 @@ module.exports = function (raw, outputRes, options) {
     warn,
     error,
     usingComponents: options.usingComponents,
+    usingComponentsInfo: '{}',
     hasComment: options.hasComment,
     isNative: options.isNative,
     basename: path.basename(resourcePath),
