@@ -237,6 +237,12 @@ module.exports = function (src, filePath, jestConfig) {
       moduleId,
       root: projectRoot
     }
+
+    const usingComponentsInfo = usingComponents ? usingComponents.reduce((acc, item) => {
+      acc[item] = { mid: '', hasVirtualHost: false }
+      return acc
+    }, {}) : {}
+    options.usingComponentsInfo = usingComponentsInfo
     this.usingComponents = usingComponents
     outputRes = templateCompiler.call(this, parts.template.content, outputRes, options)
   }
